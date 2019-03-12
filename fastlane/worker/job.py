@@ -217,10 +217,10 @@ def run_job(task_id, job_id, execution_id, image, command):
         logger = logger.bind(image=image, tag=tag)
 
         logger.debug("Changing job status...", status=JobExecution.Status.pulling)
-
         if execution_id is None:
             ex = job.create_execution(image=image, command=command)
             ex.status = JobExecution.Status.enqueued
+            ex.save()
             job.save()
         else:
             ex = job.get_execution_by_id(execution_id)
@@ -253,6 +253,7 @@ def run_job(task_id, job_id, execution_id, image, command):
 
         logger.debug("Changing job status...", status=JobExecution.Status.running)
         ex.status = JobExecution.Status.running
+        ex.save()
         job.save()
         logger.debug(
             "Job status changed successfully.", status=JobExecution.Status.running
@@ -268,6 +269,7 @@ def run_job(task_id, job_id, execution_id, image, command):
         logger.error("Failed to run job", error=error)
         ex.status = JobExecution.Status.failed
         ex.error = "Job failed to run with error: %s" % error
+        ex.save()
         job.save()
 
         current_app.report_error(
@@ -443,6 +445,7 @@ def monitor_job(task_id, job_id, execution_id):
                 "Job failed, since container could not be found in host.",
                 status="failed",
             )
+            execution.save()
             job.save()
 
             send_webhooks(job.task, job, execution, logger)
@@ -494,6 +497,7 @@ def monitor_job(task_id, job_id, execution_id):
                     ellapsed=ellapsed,
                     error=result.error,
                 )
+                execution.save()
                 job.save()
                 logger.info("Job execution timed out.", status=execution.status)
 
@@ -575,6 +579,7 @@ def monitor_job(task_id, job_id, execution_id):
             log=result.log,
             error=result.error,
         )
+        execution.save()
         job.save()
         logger.info("Job details stored in mongo db.", status=execution.status)
 
@@ -772,6 +777,7 @@ def send_webhook(
                 "headers": response.headers,
             }
         )
+        execution.save()
         job.save()
         logger.info("Webhook dispatched successfully.")
     except WebhooksDispatchError as err:
@@ -790,6 +796,7 @@ def send_webhook(
         execution.metadata["webhookDispatch"] = execution.metadata["webhookDispatch"][
             -3:
         ]
+        execution.save()
         job.save()
 
         logger.error("Failed to dispatch webhook.", err=error)
