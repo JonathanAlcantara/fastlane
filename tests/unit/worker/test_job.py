@@ -173,7 +173,7 @@ def test_monitor_job1(worker):
 
         task, job, execution = JobExecutionFixture.new_defaults()
         execution.status = JobExecution.Status.running
-        job.save()
+        execution.save()
         job_id = str(job.job_id)
 
         exec_mock = MagicMock()
@@ -220,6 +220,7 @@ def test_monitor_job_with_retry(worker):
         execution.status = JobExecution.Status.running
         job.metadata["retries"] = 3
         job.metadata["retry_count"] = 0
+        execution.save()
         job.save()
         job_id = str(job.job_id)
 
@@ -305,7 +306,7 @@ def test_enqueue_missing1(worker):
         ]:
             _, job, execution = JobExecutionFixture.new_defaults()
             execution.status = status
-
+            execution.save()
             if status == JobExecution.Status.pulling:
                 monitor_queue = worker.app.app.monitor_queue
                 enqueued_id = monitor_queue.enqueue_in(
